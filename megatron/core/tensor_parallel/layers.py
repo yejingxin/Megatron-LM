@@ -605,11 +605,11 @@ def linear_with_grad_accumulation_and_async_allreduce(
             deferred. Disable by setting this to 0. Defaults to 0.
 
     """
-    if async_grad_allreduce is not None:
-        warnings.warn(
-            "async_grad_allreduce is deprecated, not in use anymore and will"
-            " be fully removed with 0.10.0. Please use allreduce_dgrad instead."
-        )
+    #if async_grad_allreduce is not None:
+    #    warnings.warn(
+    #        "async_grad_allreduce is deprecated, not in use anymore and will"
+    #        " be fully removed with 0.10.0. Please use allreduce_dgrad instead."
+    #    )
 
     args = [
         input,
