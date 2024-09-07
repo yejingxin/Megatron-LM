@@ -1172,7 +1172,7 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
         if args.profile and torch.distributed.get_rank() in args.profile_ranks:
             if args.use_pytorch_profiler:
                 prof.step()
-            elif iteration == args.profile_step_start:
+            if iteration == args.profile_step_start:
                 torch.cuda.cudart().cudaProfilerStart()
                 torch.autograd.profiler.emit_nvtx(record_shapes=True).__enter__()
 
@@ -1380,10 +1380,9 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
         if args.profile and \
             iteration == args.profile_step_end and \
             torch.distributed.get_rank() in args.profile_ranks:
+            torch.cuda.cudart().cudaProfilerStop()
             if args.use_pytorch_profiler:
                 prof.stop()
-            else:
-                torch.cuda.cudart().cudaProfilerStop()
 
         if args.manual_gc:
             if args.manual_gc_interval != 0 and iteration % args.manual_gc_interval == 0:
