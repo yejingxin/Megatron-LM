@@ -2,8 +2,12 @@
 
 # Runs the "175B" parameter model
 # sudo docker run --ipc=host --shm-size=512m --gpus all -v ~/Megatron-LM:/workspace/Megatron-LM -v ~/wikipedia_data:/workspace/wikipedia_data -v ~/experiments:/workspace/experiments -it nvcr.io/nvidia/pytorch:24.02-py3
+# sudo docker run --ipc=host --shm-size=512m --gpus all -v ~/Megatron-LM:/workspace/Megatron-LM -v ~/wikipedia_data:/workspace/wikipedia_data -v ~/experiments:/workspace/experiments -it us-docker.pkg.dev/supercomputer-testing/mantaray-megatron/megatron-yejingxin0906-nvpy2405:root_20240907_191753
 
-#  bash examples/llama/run_llama.sh /workspace/experiments/ckpt /workspace/experiments/tb /workspace/wikipedia_data/gpt2-vocab.json /workspace/wikipedia_data/gpt2-merges.txt /workspace/wikipedia_data/wikipedia/wikipedia-tokenized-for-llama2
+#  bash examples/llama/run_llama.sh llama2-7b-090901 \
+# /workspace/experiments/ckpt /workspace/experiments/tb /workspace/wikipedia_data/gpt2-vocab.json \
+# /workspace/wikipedia_data/gpt2-merges.txt \
+# /workspace/wikipedia_data/wikipedia/wikipedia-tokenized-for-llama2
 
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 
@@ -15,14 +19,13 @@ NUM_NODES=1
 NODE_RANK=0
 WORLD_SIZE=$(($GPUS_PER_NODE*$NUM_NODES))
 
-CHECKPOINT_PATH=$1 #<Specify path>
-TENSORBOARD_LOGS_PATH=$2 #<Specify path>
-VOCAB_FILE=$3 #<Specify path to file>/gpt2-vocab.json
-echo $VOCAB_FILE
-
-MERGE_FILE=$4 #<Specify path to file>/gpt2-merges.txt
-echo $MERGE_FILE
-DATA_PATH=$5 #<Specify path and file prefix>_text_document
+JOB_IDENTIFIER=$1
+ADDTIONAL_ARGS=$2
+CHECKPOINT_PATH="/workspace/experiments/${JOB_IDENTIFIER}/ckpt" #<Specify path>
+TENSORBOARD_LOGS_PATH="/workspace/experiments/${JOB_IDENTIFIER}/tb" #<Specify path>
+VOCAB_FILE="/workspace/wikipedia_data/gpt2-vocab.json" #<Specify path to file>/gpt2-vocab.json
+MERGE_FILE="/workspace/wikipedia_data/gpt2-merges.txt" #<Specify path to file>/gpt2-merges.txt
+DATA_PATH="/workspace/wikipedia_data/wikipedia/wikipedia-tokenized-for-llama2" #<Specify path and file prefix>_text_document
 
 DISTRIBUTED_ARGS=(
     --nproc_per_node $GPUS_PER_NODE 
@@ -93,9 +96,9 @@ MODEL_PARALLEL_ARGS=(
 	--pipeline-model-parallel-size 1
 )
 
+#--use-pytorch-profiler
 PROFILE_ARGS=(
   --profile
-  --use-pytorch-profiler
   --profile-step-start=5
   --profile-step-end=10
 
@@ -124,14 +127,13 @@ rm -Rf exp
 rm -Rf profile/log/*
 #nsys profile \
 #-s none -t nvtx,cuda --capture-range=cudaProfilerApi --capture-range-end=stop \
-#            --force-overwrite=true \
-#            -o /workspace/Megatron-LM/profile/llama-rank \
-#            --session-new "llama-rank-8gpu" \
-    PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True torchrun ${DISTRIBUTED_ARGS[@]} pretrain_gpt.py \
+#    --force-overwrite=true \
+#    -o /workspace/experiments/${JOB_IDENTIFIER}/nsight-$RANK \
+    torchrun ${DISTRIBUTED_ARGS[@]} pretrain_gpt.py \
     ${GPT_MODEL_ARGS[@]} \
     ${TRAINING_ARGS[@]} \
     ${PROFILE_ARGS[@]} \
-    ${MODEL_PARALLEL_ARGS[@]} \
+    ${MODEL_PARALLEL_ARGS[@]} $ADDTIONAL_ARGS \
     ${DATA_ARGS[@]} --log-interval 1 --tensorboard-dir $TENSORBOARD_LOGS_PATH
     
     #\
